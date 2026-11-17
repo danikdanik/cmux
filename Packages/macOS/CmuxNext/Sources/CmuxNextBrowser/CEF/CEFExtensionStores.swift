@@ -11,6 +11,9 @@ final class CEFExtensionStores {
     /// Page menu sources by extension id, version and folder: each manifest
     /// is read once per installed version (``withRowIcons(_:profile:)``).
     private var menuSources: [String: BrowserExtensionMenuSource] = [:]
+    /// Manifest facts by extension folder (one installed version), nil for a folder with no
+    /// readable manifest: read once, by ``scriptsPage(at:profile:)``.
+    private var siteFacts: [String: ExtensionManifestFacts?] = [:]
 
     init(runtime: CEFRuntime, makeBackend: ((BrowserProfileID) -> any BrowserExtensionBackend)? = nil) {
         self.runtime = runtime
@@ -54,6 +57,31 @@ final class CEFExtensionStores {
         if store.extensions.isEmpty { store.refresh() }
         let sources = store.extensions.filter { $0.isEnabled && !$0.isTerminated }.map(menuSource)
         return BrowserContextMenuItem.withChromeIcons(BrowserExtensionMenuIcons(sources: sources).annotate(items))
+    }
+
+    /// True when an enabled Manifest V3 extension of `profile` can run its scripts in the web page at
+    /// `url`: its manifest asks for all sites or for this one (`ExtensionSiteAccess`). Only MV3 counts:
+    /// its service worker stops when idle, and the disconnect of each port it held is lost on a frozen
+    /// page; an MV2 background page (the built-in uBlock Origin) stays. An MV3 extension whose manifest
+    /// was not read counts too: a page kept awake costs power, a frozen one breaks the extension.
+    /// Reads each installed version's small manifest once, on the first ask.
+    func scriptsPage(at url: URL?, profile: BrowserProfileID) -> Bool {
+        guard let url, let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https" else { return false }
+        return readyStore(for: profile).extensions.contains { info in
+            guard info.isEnabled, !info.isTerminated, info.manifestVersion >= 3 else { return false }
+            switch ExtensionSiteAccess(facts(of: info), url: url) {
+            case .allSites, .thisSite, .unknown: return true
+            case .whenClicked, .none: return false
+            }
+        }
+    }
+
+    private func facts(of info: BrowserExtensionInfo) -> ExtensionManifestFacts? {
+        guard !info.path.isEmpty else { return nil }
+        if let cached = siteFacts[info.path] { return cached }
+        let read = ExtensionManifestFacts(folder: info.path)
+        siteFacts[info.path] = .some(read)
+        return read
     }
 
     /// `info`'s menu source. Reads its small manifest on the main thread

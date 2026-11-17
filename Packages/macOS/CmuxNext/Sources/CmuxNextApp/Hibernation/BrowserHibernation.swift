@@ -564,7 +564,7 @@ final class BrowserHibernation {
               let generation = cache.lifecycle.record(key)?.generation, freezeProbing.insert(key).inserted else { return }
         let limit = pageDeadline
         Task { @MainActor [weak self] in
-            let probe = await Self.probe(tab, within: limit)
+            let probe = await Self.probe(tab, within: limit).scripted(byExtension: page.freezeDropsExtensionEvents)
             guard let self, let cache = self.cache else { return }
             self.freezeProbing.remove(key)
             guard cache.browsers[key]?.tab === tab, cache.lifecycle.record(key)?.generation == generation,

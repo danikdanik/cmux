@@ -48,6 +48,11 @@ package struct PageProbe: Hashable, Sendable {
     /// The person moved into a child frame whose fields cannot be read (Chromium's cross-origin
     /// frames have no recorder): its edits are unknown, so they count as the person's input.
     package var unreadableFrame = false
+    /// An enabled extension can script the page (`BrowserFreezing.freezeDropsExtensionEvents`): a port
+    /// disconnect its stopped service worker sends while the page is frozen never reaches the page, so its
+    /// old scripts stay live beside the new ones (Bitwarden's passkey sign-in then fails). It stops a
+    /// freeze only: a discard reloads the page with one copy.
+    package var scriptedByExtension = false
     /// False when the page did not answer (a script error, or no reply within the deadline):
     /// only what the tab reported on its own (`BrowserTabState.media`) is known.
     package var answered = true
@@ -79,9 +84,16 @@ package struct PageProbe: Hashable, Sendable {
         return webAudio ? .webAudio : nil
     }
 
-    /// The page does something a freeze stops (it keeps memory and state, so form input and a
-    /// `beforeunload` do not count).
-    package var stopsWhenFrozen: Bool { playingMedia || capturing || webAudio || webRTC || connectedDevice }
+    /// The page does something a freeze stops, or an extension scripts it (it keeps memory and state,
+    /// so form input and a `beforeunload` do not count).
+    package var stopsWhenFrozen: Bool { playingMedia || capturing || webAudio || webRTC || connectedDevice || scriptedByExtension }
+
+    /// This answer, with ``scriptedByExtension`` set to `scripted`.
+    package func scripted(byExtension scripted: Bool) -> PageProbe {
+        var probe = self
+        probe.scriptedByExtension = scripted
+        return probe
+    }
 
     /// Why the probed page stays loaded now, or nil when it may hibernate.
     ///
