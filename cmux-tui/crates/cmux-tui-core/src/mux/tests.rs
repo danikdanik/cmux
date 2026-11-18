@@ -31,6 +31,8 @@ mod agent_start_mark;
 mod agent_turn_end_commits;
 #[cfg(unix)]
 mod agent_turn_end_crash_order;
+#[cfg(unix)]
+mod agent_turn_end_pages;
 pub(crate) mod at_rest_writers;
 mod cell_pixel_fanout;
 mod cell_pixels;
