@@ -61,13 +61,13 @@ struct CloudStartChat {
                 return AgentPaneReply.failure(code: "cloud_setup_required", message: "cloud_setup_required", details: ["family": family, "model": model ?? ""], retryable: false, origin: "native")
             }
             let account = services.cloud.account
-            let origin = Origin(tab: tab, chat: start.repository == nil ? start.cwd ?? tab.cwd : nil, workspace: services.workspaceID(ofTab: tab.id), account: account, connection: choice.connectionID) { [services] in
-                // This Mac's tab, which never started a chat: the chat is the machine's now.
+            let workspace = services.workspaceID(ofTab: tab.id), home = NewWorkspacePlacements.home(services.machines)
+            let origin = Origin(tab: tab, chat: start.repository == nil ? start.cwd ?? tab.cwd : nil, workspace: workspace, account: account, connection: choice.connectionID) { [services] in
+                // This Mac's tab, which never started a chat: the chat is the machine's now, and its workspace, left empty, goes (the Cloud one took its row; never Home).
                 do {
                     try await services.daemon.connection?.closeTabs([tab.surface], endTerminals: false, reason: .sessionEnd)
-                } catch {
-                    services.cloud.logger.error("cloud start chat: closing this Mac's tab failed: \(String(describing: error), privacy: .public)")
-                }
+                    if let workspace, workspace != home { try await services.daemon.connection?.closeWorkspace(WorkspaceKey(rawValue: workspace), ifEmpty: true) }
+                } catch { services.cloud.logger.error("cloud start chat: closing this Mac's tab failed: \(String(describing: error), privacy: .public)") }
             }
             let machine = try await run(start, from: origin, report: report)
             return AgentPaneReply.success(["machine": machine])
@@ -250,7 +250,7 @@ struct CloudStartChat {
         if opened.key != tabKey { services.cloud.agentCredentials.move(chat: tabKey, to: opened.key, machine: machine.machineID) }
         if let copy { services.cloud.movedChats.copied(copy) }; services.cloudStartTitles.hand(from: origin.tab, to: tab) // the chat keeps the start's title
         await AgentSessionAttachClient.trustCopiedFolder(cwd, sourceTrusted: trusted, surface: opened.surface.rawValue, ownerLink: CloudMachineLinks(appLink: machine.appLink).ownerLink, endpoint: AgentTabRemoteHost.endpoint(on: machine.daemon))
-        CloudHandlers.show(anchor.id, context)
+        CloudHandlers.show(anchor.id, context, replacing: origin.workspace)
         for window in services.windows.controllers { window.state.selection.select(opened.key, in: anchor.pane.id) }
         services.agentTabs.pageChats.cloudStarted[AgentTabKey(machine: machine.machineID, key: opened.key)] = AgentPaneCloudStarted(start: original ?? start, chat: origin.chat, workspace: origin.workspace, account: origin.account, machineID: machine.machineID)
         handOff(true)
