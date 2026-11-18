@@ -1036,6 +1036,10 @@ jobs:
         if: ${{ !cancelled() }}
         run: bash scripts/measure/tests/tab-switch-submodule-refs.test.sh
 
+      - name: launch-reboot.sh refuses bad arguments, reboots last, and prints its LB rows
+        if: ${{ !cancelled() }}
+        run: bash scripts/measure/tests/launch-reboot.test.sh
+
       - name: install-zig-ci.sh installs only a reviewed Zig
         if: ${{ !cancelled() }}
         run: python3 tests/test_install_zig_ci_reviewed_version.py
