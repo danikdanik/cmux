@@ -93,4 +93,36 @@ import Testing
             #expect(hidden.isEmpty, "\(json) hid: \(hidden)")
         }
     }
+
+    @Test func theRuleHidesTheRestOnlyInMinimalMode() {
+        let rest = SidebarChromeReveal(revealed: false, minimalMode: .off, controlsOnHover: true, spacesVisibility: .hover, minimal: true)
+        #expect(rest.rest == 0)
+        #expect(SidebarChromeReveal(revealed: true, minimalMode: .off, controlsOnHover: true, spacesVisibility: .hover, minimal: true).rest == 1)
+        #expect(SidebarChromeReveal(revealed: false, minimalMode: .off, controlsOnHover: true, spacesVisibility: .hover).rest == 1)
+    }
+
+    /// The faded cards' room goes to the list with the footer's (as ``MinimalModeFooterCollapseTests``); the pointer
+    /// back over the sidebar gives it back.
+    @Test func theHiddenCardsRoomGoesToTheList() async throws {
+        let previousMotion = Motion.reduceMotionOverride
+        Motion.reduceMotionOverride = true
+        defer { Motion.reduceMotionOverride = previousMotion }
+        let h = try await SidebarBandHideTests().make(#"{"sidebar":{"minimal":true}}"#)
+        defer { h.tearDown() }
+        await h.until { h.sidebar.design.sidebarSections.minimal }
+        _ = Self.dress(h.sidebar)
+        func listBottom(revealed: Bool) -> CGFloat {
+            h.sidebar.setChromeRevealed(revealed)
+            h.sidebar.needsLayout = true
+            h.sidebar.layoutSubtreeIfNeeded()
+            return h.sidebar.edgeFade.frame.maxY
+        }
+        let shown = listBottom(revealed: true)
+        let card = h.sidebar.updateCardView.frame
+        #expect(card.height > 0, "fixture: the update card has the slot")
+        #expect(shown <= card.minY + 0.5, "revealed, the list ends above the card: list \(shown), card \(card)")
+        let rest = listBottom(revealed: false)
+        #expect(rest >= card.maxY, "at rest the list takes the hidden card's room: list \(rest), card \(card)")
+        #expect(abs(listBottom(revealed: true) - shown) <= 0.5, "the pointer back gives the room back")
+    }
 }
