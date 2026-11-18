@@ -23,7 +23,7 @@ extension CEFTab: BrowserFreezing {
     /// An enabled extension of the tab's profile can script its web page (Bitwarden's passkey scripts:
     /// two live copies after a frozen worker restart failed every sign-in).
     public var freezeDropsExtensionEvents: Bool {
-        runtime.extensionStores.scriptsPage(at: state.url, profile: profileID)
+        false // a1218 energy bench BEFORE arm: the pre-c13d1f2 rule (every hidden page may freeze)
     }
 
     /// Freezes a page that is never shown (the spare window's about:blank placeholder) through DevTools
