@@ -6,6 +6,8 @@ use std::collections::HashMap;
 
 #[cfg(unix)]
 mod agent_activity;
+#[cfg(unix)]
+mod agent_event_commit_pages;
 mod agent_hook_fences;
 mod agent_hook_retry;
 #[cfg(unix)]
@@ -29,8 +31,6 @@ mod agent_screen_exit;
 mod agent_start_mark;
 #[cfg(unix)]
 mod agent_turn_end_commits;
-#[cfg(unix)]
-mod agent_turn_end_pages;
 pub(crate) mod at_rest_writers;
 mod cell_pixel_fanout;
 mod cell_pixels;
