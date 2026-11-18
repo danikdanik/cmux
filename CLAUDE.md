@@ -98,7 +98,8 @@ use it before the build is done. The agent itself runs it there only when asked;
   the cmux-next iPhone app, and `ios/scripts/reload.sh` does not build it. Its one-command hand-off
   (`cmux-next-ios/scripts/review.sh`, PR #43379) has not landed yet; until it does, do the Mac step
   above, report the `cmux-next-ios/` change as not installed on a phone, and name that as the
-  blocker. For the classic app, run
+  blocker. A tagged dev Mac pairs its own tag's iPhone app with no Allow prompt; to test the prompt,
+  run `review.sh --approve-first` ([modes](cmux-next-ios/CLAUDE.md)). For the classic app, run
   `ios/scripts/reload.sh --review --tag <task-slug>`. In one command it builds on the
   fleet (the Mac build above included, same tag, published to HQ), installs on every connected
   iPhone, not only the configured one, through the authenticated install
