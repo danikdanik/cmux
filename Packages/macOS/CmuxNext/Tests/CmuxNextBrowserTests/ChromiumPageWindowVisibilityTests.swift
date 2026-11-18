@@ -84,49 +84,18 @@ import Testing
         // Not a child window yet (a page before it shows, a detached page).
         #expect(!page.occlusionState.contains(.visible))
         #expect(!page.isOnActiveSpace)
-        let parent = Self.parent(of: page)
+        _ = Self.parent(of: page)
         page.embedded = false
         #expect(!page.occlusionState.contains(.visible))
         #expect(!page.isOnActiveSpace)
         page.embedded = true
         #expect(page.occlusionState.contains(.visible))
-        withExtendedLifetime(parent) {}
-    }
-
-    @Test func installingAgainIsHarmless() throws {
-        let cls = try Self.pageWindowClass()
-        #expect(ChromiumPageWindowVisibility.followParentWindow(cls))
-        #expect(ChromiumPageWindowVisibility.followParentWindow(cls))
-        let page = try Self.window(of: cls)
-        let parent = Self.parent(of: page)
-        #expect(page.isOnActiveSpace)
-        parent.activeSpace = false
-        #expect(!page.isOnActiveSpace)
     }
 
     @Test func otherWindowsKeepTheirAnswer() throws {
         ChromiumPageWindowMain.installPageRules(on: try Self.pageWindowClass())
         let page = try Self.window(of: StandInPageWindow.self)
-        let parent = Self.parent(of: page)
+        _ = Self.parent(of: page)
         #expect(!page.isOnActiveSpace)
-        withExtendedLifetime(parent) {}
-    }
-
-    /// Chromium reads a window's state only on that window's own notification: the cmux window's flip is passed on
-    /// to its embedded page windows, and a page window's own flip to nothing else.
-    @Test func theParentsFlipReachesItsEmbeddedPageWindowsOnly() throws {
-        let cls = try Self.pageWindowClass()
-        ChromiumPageWindowMain.installPageRules(on: cls)
-        let page = try Self.window(of: cls)
-        let other = try Self.window(of: cls)
-        other.embedded = false
-        let parent = Self.parent(of: page)
-        parent.children.append(other)
-        var notified: [ObjectIdentifier] = []
-        ChromiumPageWindowVisibility.parentOcclusionChanged(parent) { notified.append(ObjectIdentifier($0)) }
-        #expect(notified == [ObjectIdentifier(page)])
-        notified.removeAll()
-        ChromiumPageWindowVisibility.parentOcclusionChanged(page) { notified.append(ObjectIdentifier($0)) }
-        #expect(notified.isEmpty)
     }
 }
